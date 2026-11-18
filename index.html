@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 遊戲全功能提示詞產生器</title>
+    <style>
+        :root {
+            --bg-color: #0d0f18;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #ec4899;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #e5e7eb;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 16px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        #btn-generate {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        #btn-generate:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        #btn-generate:active {
+            transform: translateY(0);
+        }
+
+        /* 預覽區域 */
+        .preview-section {
+            margin-top: 30px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 24px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .preview-header span {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        #preview-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #d1d5db;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* 複製成功提示特效 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            opacity: 0;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>AI 遊戲提示詞產生器</h1>
+            <p>打造擁有 60+ 功能、三語切換、動態外觀與極致爽感的網頁遊戲提示詞</p>
+        </header>
+
+        <div class="form-group">
+            <label for="game-type">1. 想做的遊戲類型（選填）</label>
+            <input type="text" id="game-type" placeholder="例如：賽博龐克肉鴿彈幕生存射擊、末日塔防、魔法少女養成...">
+            <div class="hint">若留空，AI 將發揮創意自動為您想像一個極具特色的獨特遊戲主題。</div>
+        </div>
+
+        <div class="form-group">
+            <label for="game-mechanics">2. 遊戲核心玩法與特色（選填）</label>
+            <textarea id="game-mechanics" placeholder="例如：玩家操控機體閃避彈幕，擊殺敵人掉落經驗，每升級可三選一強化，支援全螢幕清屏大招..."></textarea>
+            <div class="hint">若留空，AI 將自動設計一套極具成癮性與爽感的深度核心機制。</div>
+        </div>
+
+        <div class="btn-container">
+            <button id="btn-generate">生成並一鍵複製提示詞到剪貼簿</button>
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-header">
+                <span>即時預覽產出的提示詞：</span>
+            </div>
+            <div id="preview-box">點擊上方按鈕後，完整的 AI 專用提示詞將顯示於此並自動複製！</div>
+        </div>
+    </div>
+
+    <!-- 複製成功浮動提示 -->
+    <div id="toast" class="toast">✨ 提示詞已成功複製到剪貼簿！</div>
+
+    <script>
+        // 隨機預設庫（當用戶沒有輸入時由 AI/系統自行想像）
+        const randomIdeas = [
+            {
+                type: "【黑洞吞噬者：重力交響曲】（結合重力軌道與節奏踩點的宇宙吞噬遊戲）",
+                mechanics: "玩家操控微型奇點，不靠射擊，透過切換引力與斥力甩動周圍小行星砸向敵艦，隨著電子音樂節拍共振擴散，吞噬越多體積越大，最終演化成超新星爆發。"
+            },
+            {
+                type: "【煉金術師的混沌彈珠台：元素連鎖反應】（復古彈珠台結合化學反應與肉鴿構築）",
+                mechanics: "發射蘊含火、水、雷、毒、重力等元素的煉金法球，撞擊場上釘子觸發跨元素化學連鎖反應（如水+雷=全場感電、火+毒=大範圍爆燃），搭配多球分裂與狂熱模式。"
+            },
+            {
+                type: "【賽博菌絲：微觀生態入侵】（微觀生物學即時策略與基因突變遊戲）",
+                mechanics: "玩家扮演霓虹螢光黏菌，在培養皿延伸菌絲網絡、搶佔營養源，調配基因鹼基對即時突變出酸液、神經麻痺、寄生感染孢子塔，反殺人類抗生素奈米機器人。"
+            },
+            {
+                type: "【時間倒流快遞員：Chrono-Courier】（時間迴圈與極速跑酷動作解謎遊戲）",
+                mechanics: "玩家只有 15 秒穿越機關浮空都市送包裹；死亡或超時會立刻倒帶重來，上一輪的自己會化作殘影重演動作，必須與過去多個時間線的自己並肩合作通關。"
+            }
+        ];
+
+        const typeInput = document.getElementById('game-type');
+        const mechanicsInput = document.getElementById('game-mechanics');
+        const generateBtn = document.getElementById('btn-generate');
+        const previewBox = document.getElementById('preview-box');
+        const toast = document.getElementById('toast');
+
+        // 即時生成提示詞的函數
+        function buildPrompt() {
+            let userType = typeInput.value.trim();
+            let userMechanics = mechanicsInput.value.trim();
+
+            // 如果用戶沒有輸入，隨機挑選或讓 AI 自行想像
+            if (!userType || !userMechanics) {
+                const randomChoice = randomIdeas[Math.floor(Math.random() * randomIdeas.length)];
+                if (!userType) userType = randomChoice.type + " （此為 AI 自行想像之創新題材）";
+                if (!userMechanics) userMechanics = randomChoice.mechanics + " （此為 AI 自行想像之核心爽感機制）";
+            }
+
+            return `# Role
+你是一位擁有 15 年經驗的資深全端遊戲開發工程師與 UI/UX 視覺設計師，專精於單頁式 HTML5 Canvas 遊戲開發、2D 物理/彈幕引擎演算、Web Audio API 程式化音效合成、響應式介面設計與遊戲打擊感（Game Juice）調校。
+
+# Task
+請為我開發一款極具成癮性、節奏爽快、畫面精美且功能完整的單檔 HTML5 網頁遊戲（所有 HTML、CSS、JavaScript 必須整合在同一個 \`.html\` 檔案中，無需任何外部圖片或音效素材，全數使用 Canvas 繪圖與 Web Audio API 程式化生成）。
+
+**【目標遊戲主題與核心玩法】**
+- **遊戲類型：** ${userType}
+- **核心機制：** ${userMechanics}
+
+# Core Requirements (核心技術與架構規範)
+
+1. **極致響應式與跨裝置支援 (Universal Responsiveness)：**
+   - 必須完美適配任何螢幕比例（16:9 桌機、21:9 寬螢幕、9:16 直立手機、4:3 平板），視窗縮放時畫面不變形、不裁切核心遊玩區。
+   - 支援「鍵盤」、「滑鼠」與「觸控螢幕（虛擬搖桿/雙半屏手勢）」無縫自動切換。
+
+2. **多語系即時切換系統 (i18n Localization)：**
+   - 內建完整字典系統，支援 **繁體中文 (zh-TW)**、**簡體中文 (zh-CN)**、**英文 (en)** 三語一鍵即時切換，涵蓋所有 UI、說明與成就。
+
+3. **動態視覺主題引擎 (Dynamic Theme Engine)：**
+   - 內建 4 種高質感視覺配色與光影風格（秘法霓虹、復古街機、賽博暗黑、極簡美學），可隨時一鍵切換，背景與特效同步平滑過渡。
+
+4. **爽快感與高成癮性機制 (Game Juice & Core Loop)：**
+   - 實作動態螢幕震動 (Screen Shake)、頓幀 (Hit-stop)、高密度粒子爆炸、浮動數值/暴擊字樣、連擊倍率計量條 (Combo/Fever Mode)。
+   - 設計高自由度的成長構築系統（如升級三選一、隨機天賦、局外天賦樹），確保每一局都有不同流派體驗。
+
+5. **豐富功能模組化清單（涵蓋 60+ 項具體可運作功能）：**
+   請透過高度模組化的狀態機架構，完整實作以下八大模組（共計 64 項真實可運作邏輯）：
+   - **【模組 A：核心操作與戰鬥/玩法機制 (8項)】**
+   - **【模組 B：局內肉鴿/策略與自由構築 (8項)】**
+   - **【模組 C：多樣化關卡與遊戲模式 (8項)】**
+   - **【模組 D：視覺特效與動態表現 (8項)】**
+   - **【模組 E：Web Audio 程序化音效系統 (8項)】**
+   - **【模組 F：UI/UX 與即時資訊儀表板 (8項)】**
+   - **【模組 G：成就、排行榜與存檔系統 (8項)】**
+   - **【模組 H：系統設定與無障礙優化 (8項)】**
+
+# Coding & Output Rules (輸出規範)
+- **創新機制鐵律：** 核心玩法必須具備高度可玩性與操作回饋，嚴禁做成無腦點擊或陽春空殼。
+- **禁止使用佔位符：** 嚴禁在程式碼中寫 \`// TODO\` 或省略任何函式內容，所有 64 項功能皆必須具備完整、真實可運行的邏輯。
+- **架構清晰：** 採用 ES6+ 現代語法，將 \`Config\`、\`I18n\`、\`Themes\`、\`AudioEngine\`、\`Engine\`、\`ParticleSystem\`、\`UIManager\` 明確分區封裝。
+- 請直接輸出完整、可立即存成 \`.html\` 並在瀏覽器雙擊開啟遊玩的單一程式碼檔案。`;
+        }
+
+        // 輸入時即時更新預覽
+        typeInput.addEventListener('input', updatePreview);
+        mechanicsInput.addEventListener('input', updatePreview);
+
+        function updatePreview() {
+            previewBox.textContent = buildPrompt();
+        }
+
+        // 初始化預覽
+        updatePreview();
+
+        // 點擊按鈕：生成並複製到剪貼簿
+        generateBtn.addEventListener('click', async () => {
+            const finalPrompt = buildPrompt();
+            previewBox.textContent = finalPrompt;
+
+            try {
+                await navigator.clipboard.writeText(finalPrompt);
+                showToast();
+            } catch (err) {
+                // 備用複製方案
+                const textarea = document.createElement('textarea');
+                textarea.value = finalPrompt;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast();
+            }
+        });
+
+        function showToast() {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
